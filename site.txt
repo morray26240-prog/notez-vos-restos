@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>🍽️ FoodScore</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  padding: 20px;
+}
+
+h1 { text-align: center; }
+
+section, form, .controls {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  max-width: 550px;
+  margin: 20px auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+input, select, textarea, button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px;
+}
+
+button {
+  background: #ff9800;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover { background: #e68900; }
+
+.restaurant {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  max-width: 550px;
+  margin: 15px auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.stars { color: #ff9800; }
+.price { color: #4caf50; }
+
+img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.actions button {
+  width: auto;
+  margin-right: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🍽️ FoodScore</h1>
+
+<section id="top10">
+  <h2>🏆 Top 10 Restaurants</h2>
+  <div id="topList"></div>
+</section>
+
+<form id="form">
+  <input id="name" placeholder="Nom du restaurant" required>
+
+  <select id="type">
+    <option>Français</option>
+    <option>Italien</option>
+    <option>Japonais</option>
+    <option>Fast-food</option>
+    <option>Autre</option>
+  </select>
+
+  <select id="rating" required>
+    <option value="">Note</option>
+    <option value="1">⭐</option>
+    <option value="2">⭐⭐</option>
+    <option value="3">⭐⭐⭐</option>
+    <option value="4">⭐⭐⭐⭐</option>
+    <option value="5">⭐⭐⭐⭐⭐</option>
+  </select>
+
+  <select id="price">
+    <option value="1">€</option>
+    <option value="2">€€</option>
+    <option value="3">€€€</option>
+  </select>
+
+  <textarea id="comment" placeholder="Commentaire"></textarea>
+
+  <input type="file" id="photo" accept="image/*">
+
+  <button>Ajouter</button>
+</form>
+
+<div class="controls">
+  <input id="search" placeholder="Rechercher">
+</div>
+
+<div id="list"></div>
+
+<script>
+let restaurants = JSON.parse(localStorage.getItem("restaurants")) || [];
+let editIndex = null;
+
+function save() {
+  localStorage.setItem("restaurants", JSON.stringify(restaurants));
+}
+
+function renderTop10() {
+  const top = [...restaurants]
+    .sort((a,b) => b.rating - a.rating || b.price - a.price)
+    .slice(0,10);
+
+  topList.innerHTML = "";
+  top.forEach((r,i) => {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <p><strong>#${i+1} ${r.name}</strong> – ${"⭐".repeat(r.rating)}</p>
+    `;
+    topList.appendChild(div);
+  });
+}
+
+function render() {
+  list.innerHTML = "";
+  renderTop10();
+
+  const q = search.value.toLowerCase();
+  restaurants
+    .filter(r => r.name.toLowerCase().includes(q))
+    .forEach((r,i) => {
+      const div = document.createElement("div");
+      div.className = "restaurant";
+      div.innerHTML = `
+        <h3>${r.name}</h3>
+        <div>${r.type}</div>
+        <div class="stars">${"⭐".repeat(r.rating)}</div>
+        <div class="price">${"€".repeat(r.price)}</div>
+        ${r.photo ? `<img src="${r.photo}">` : ""}
+        <p>${r.comment || ""}</p>
+        <div class="actions">
+          <button onclick="edit(${i})">✏️</button>
+          <button onclick="del(${i})">🗑️</button>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+}
+
+form.onsubmit = e => {
+  e.preventDefault();
+
+  const file = photo.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = () => saveRestaurant(reader.result);
+    reader.readAsDataURL(file);
+  } else {
+    saveRestaurant(null);
+  }
+};
+
+function saveRestaurant(photoData) {
+  const r = {
+    name: name.value,
+    type: type.value,
+    rating: +rating.value,
+    price: +price.value,
+    comment: comment.value,
+    photo: photoData
+  };
+
+  editIndex === null ? restaurants.push(r) : restaurants[editIndex] = r;
+  editIndex = null;
+  save();
+  form.reset();
+  render();
+}
+
+function del(i) {
+  restaurants.splice(i,1);
+  save();
+  render();
+}
+
+function edit(i) {
+  const r = restaurants[i];
+  name.value = r.name;
+  type.value = r.type;
+  rating.value = r.rating;
+  price.value = r.price;
+  comment.value = r.comment;
+  editIndex = i;
+}
+
+search.oninput = render;
+render();
+</script>
+
+</body>
+</html>
